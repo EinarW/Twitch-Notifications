@@ -102,5 +102,4 @@ ENV/
 
 #Project-specific
 secret.py
-test.py
-localBA.json
+local.json
