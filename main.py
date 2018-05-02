@@ -1,11 +1,15 @@
 import asyncio
 import aiohttp
-import discord
 import json
 import secret
+import re
+from discord.ext import commands
 from datetime import datetime
 
-client = discord.Client()
+client = commands.Bot(command_prefix='!')
+client.remove_command('help')
+
+unresolved_ids = 0
 
 # Reset all sent key values to false
 with open('local.json', 'r') as fp:
@@ -19,12 +23,14 @@ with open('local.json', 'w') as fp:
 with open('local.json', 'r') as fp:
     local = json.load(fp)
 
+api = {}
+
 
 @client.event
 async def on_ready():
     print('Logged in as')
-    print('Name: ' + client.user.name)
-    print('Client ID: ' + client.user.id)
+    print('Name: {}'.format(client.user.name))
+    print('Client ID: {}'.format(client.user.id))
     print('------\n')
 
 
@@ -107,23 +113,25 @@ async def make_users_url():
     return url
 
 
-async def fill_ids(api):
+async def fill_ids(users_response):
+    global unresolved_ids
     counter = 0
 
     print('\nFilling missing IDs...')
     for local_user in local['streams']:
         if local_user['id'] == "":
-            for api_user in api['data']:
-                if local_user['login'] == api_user['login']:
+            for user in users_response['data']:
+                if local_user['login'] == user['login']:
                     counter += 1
-                    print('Filled missing ID for User: ' + local_user['login'] + ' : ' + api_user['id'])
-                    local_user['id'] = api_user['id']
+                    print('Filled missing ID for User: ' + local_user['login'] + ' : ' + user['id'])
+                    local_user['id'] = user['id']
 
     if counter == 0:
         print('No IDs missing.')
     else:
         print('\n' + str(counter) + ' IDs filled.')
 
+    unresolved_ids = 0
     await dump_json()
 
 
@@ -131,6 +139,7 @@ async def fill_ids(api):
 # Function checks response from get_streams() and sends a message to joined discord channels accordingly.
 async def looped_task():
     await client.wait_until_ready()
+    global api
 
     c_id = '9kn1me8vriegnjyxoum7yprapfi3kn'  # Client ID from Twitch Developers App
     c_secret = secret.secret  # Client Secret from Twitch Developers App
@@ -141,8 +150,8 @@ async def looped_task():
     first_startup = 1  # Prepwork
 
     # Check response from fecth() and messages discord channels
-    while not client.is_closed:
-        if first_startup:
+    while not client.is_closed():
+        if first_startup or unresolved_ids:
             users_url = await make_users_url()
             await asyncio.sleep(2)
 
@@ -164,6 +173,45 @@ async def looped_task():
             streams_url = await make_streams_url()
             async with aiohttp.ClientSession() as session:
                 api = await get_streams(c_id, session, streams_url, 'json')
+
+            # Check for streams in local['streams'] that are not in any of the channels' subscriptions and remove those
+            all_subscriptions = []
+            for channel_index in local['channels']:
+                for subscribed in channel_index['subscribed']:
+                    if subscribed not in all_subscriptions:
+                        all_subscriptions.append(subscribed)
+
+            for i, stream in enumerate(local['streams']):
+                if stream['login'] not in all_subscriptions:
+                    print('\nTime: ' + str(datetime.now()) + '\nNo channels subscribed to stream:\nREMOVED: ' +
+                          stream['login'] + ' from local["streams"]\n')
+                    stream_list = local['streams']
+                    stream_list.pop(i)
+
+                    await dump_json()
+
+            # Check for streams in channel subscriptions that are not in the user_response
+            for channel in local['channels']:
+                channel_id = channel['id']
+                for subscription in channel['subscribed']:
+                    exists = 0
+                    for user in users_response['data']:
+                        if subscription == user['login']:
+                            exists = 1
+
+                    if exists == 0:
+                        sub_list = channel['subscribed']
+                        sub_list.remove(subscription)
+
+                        print('\nTime: ' + str(datetime.now()))
+                        print('Twitch stream does not exist: ')
+                        print('REMOVED STREAM: ' + subscription + '\nCHANNEL ID: ' + str(channel_id))
+                        msg = subscription + ' does not exist, removing channel from notification list.'
+
+                        channel_to_send = client.get_channel(channel_id)
+                        await channel_to_send.send(msg)
+
+                        await dump_json()
 
             # Loop through api response and set offline stream's 'sent' key value to false
             for index in local['streams']:
@@ -210,7 +258,8 @@ async def looped_task():
                                 # Sends message to channel, then saves sent status to json
                                 if status == 'live' and stream_index['sent'] == 'false':
                                     msg = stream_index['login'] + ' is LIVE!\nhttps://www.twitch.tv/' + stream_index['login']
-                                    await client.send_message(client.get_channel(channel_id), msg)
+                                    channel_to_send = client.get_channel(channel_id)
+                                    await channel_to_send.send(msg)
 
                                 elif status == 'vodcast' and stream_index['sent'] == 'false':
                                     msg = stream_index['login'] + ' VODCAST is LIVE!\nhttps://www.twitch.tv/' + stream_index['login']
@@ -238,12 +287,157 @@ async def looped_task():
             await asyncio.sleep(30)  # task runs every x second(s)
 
 
-@client.event
-async def on_message(message):
+@client.command()
+async def help(ctx):
+    msg = 'This bot lets you know when your favorite streamers go live.\nHelpful, I know.\n\nCommands:\n\n' \
+          '!list\t\t\t\t\t\t\t\t\t\t      :\tList your channels\n' \
+          '!add <twitch channel>\t\t\t:\tAdd a twitch channel\n' \
+          '!remove <twitch channel>\t :\tRemove a twitch channel\n'
+    await ctx.send(msg)
 
-    if message.content.startswith('!help'):
-        msg = 'This bot lets you know when Lirik is live.\nHelpful, I know.'
-        await client.send_message(message.channel, msg)
+
+@client.command()
+async def list(ctx):
+    channel_id = ctx.message.channel.id
+    print('\n------\n\nTime: ' + str(datetime.now()))
+    print('List request from channel ' + str(channel_id) + '\n------\n')
+
+    msg = 'You currently receive notifications for the following channels:\n'
+    for channel in local['channels']:
+        if channel['id'] == channel_id:
+            for stream in channel['subscribed']:
+                msg = msg + '\n' + stream
+
+    await ctx.send(msg)
+
+
+@client.command()
+async def remove(ctx, arg):
+    channel_id = ctx.message.channel.id
+
+    print('\n------\n\nTime: ' + str(datetime.now()))
+    print('Remove request from channel ' + str(channel_id) + ' for stream name ' + arg)
+
+    if not re.match('^[a-zA-Z0-9_]+$', arg):
+        msg = 'Name must not contain special characters.'
+        print(msg)
+        await ctx.send(msg)
+        return
+
+    # Check channel list in local.json to avoid duplicates
+    for i, channel in enumerate(local['channels']):
+        subscription_exists = 0
+
+        if channel['id'] == channel_id:
+            for stream in channel['subscribed']:
+                if stream == arg:
+                    subscription_exists = 1
+
+            if subscription_exists:
+                subscriptions = local['channels'][i]['subscribed']
+                subscriptions.remove(arg)
+
+                print('\nREMOVED: \nSTREAM: ' + arg + '\nCHANNEL ID: ' + str(channel_id) + '\n------\n')
+
+                msg = 'Removed ' + arg + '.'
+                await ctx.send(msg)
+
+            else:
+                print(arg + ' does not exist in channel subscribtions')
+
+                msg = arg + ' is not currently in your notifications.'
+                await ctx.send(msg)
+
+
+@client.command()
+async def add(ctx, arg):
+    global unresolved_ids
+    channel_id = ctx.message.channel.id
+    stream_exists = 0
+    subscription_exists = 0
+
+    print('\n------\n\nTime: ' + str(datetime.now()))
+    print('Add request from channel ' + str(channel_id) + ' for stream name ' + arg)
+
+    if not re.match('^[a-zA-Z0-9_]+$', arg):
+        msg = 'Name must not contain special characters.'
+        print(msg)
+        await ctx.send(msg)
+        return
+
+    # Check streams list in local.json to avoid duplicates
+    for index in local['streams']:
+        if index['login'] == arg:
+            stream_exists = 1
+
+    # Check channel list in local.json to avoid duplicates
+    for channel in local['channels']:
+        if channel['id'] == channel_id:
+            for stream in channel['subscribed']:
+                if stream == arg:
+                    subscription_exists = 1
+
+    # Acts on the checks above
+    if subscription_exists == 0 and stream_exists == 0:
+        new_stream = {
+            "login": arg,
+            "sent": "false",
+            "id": ""
+        }
+        local.setdefault('streams', []).append(new_stream)
+        unresolved_ids = 1
+
+        for channel in local['channels']:
+            if channel['id'] == channel_id:
+                change = channel['subscribed']
+                change.append(arg)
+
+        await dump_json()
+
+        print('\nADDED: \nSTREAM: ' + arg + '\nCHANNEL ID: ' + str(channel_id) + '\nADDED TO STREAMS\n------\n')
+
+        msg = 'Adding ' + arg + ' to your notifications.'
+        await ctx.send(msg)
+
+    elif subscription_exists == 1 and stream_exists == 0:
+        new_stream = {
+            "login": arg,
+            "sent": "false",
+            "id": ""
+        }
+        local.setdefault('streams', []).append(new_stream)
+        unresolved_ids = 1
+
+        await dump_json()
+
+        print('\nADDED TO STREAMS\n------\n')
+
+        msg = arg + ' is already in your notifications.'
+        await ctx.send(msg)
+
+    elif subscription_exists == 0 and stream_exists == 1:
+        for channel in local['channels']:
+            if channel['id'] == channel_id:
+                change = channel['subscribed']
+                change.append(arg)
+
+        print('\nADDED: \nSTREAM: ' + arg + '\nCHANNEL ID: ' + str(channel_id) + '\n------\n')
+
+        await dump_json()
+
+        msg = 'Adding ' + arg + ' to your notifications.'
+        await ctx.send(msg)
+
+    elif subscription_exists == 1 and stream_exists == 1:
+        print('ALREADY ADDED')
+        msg = arg + ' has already been added to your notifications!'
+        await ctx.send(msg)
+
+
+@client.event
+async def on_command_error(ctx, error):
+    await ctx.send("That didn't work, please try again.")
+
 
 client.loop.create_task(looped_task())
 client.run(secret.token)
