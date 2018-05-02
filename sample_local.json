@@ -1,0 +1,28 @@
+{
+  "channels": [
+    {
+      "id": 100000000000000000,
+      "subscribed": [
+        "lirik",
+        "giantwaffle",
+        "timthetatman"
+      ]
+    },
+    {
+      "id": 200000000000000000,
+      "subscribed": [
+        "lirik",
+        "giantwaffle",
+        "timthetatman",
+        "cohhcarnage",
+        "manvsgame"
+      ]
+    },
+    {
+      "id": 300000000000000000,
+      "subscribed": []
+    }
+  ],
+  "streams": [
+  ]
+}
