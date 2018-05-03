@@ -23,6 +23,9 @@ with open('local.json', 'w') as fp:
 with open('local.json', 'r') as fp:
     local = json.load(fp)
 
+with open('userlist.json', 'r') as fp:
+    user_list = json.load(fp)
+
 api = {}
 
 
@@ -37,6 +40,9 @@ async def on_ready():
 async def dump_json():
     with open('local.json' , 'w') as fp:
         json.dump(local, fp, indent=2)
+
+    with open('userlist.json' , 'w') as fp:
+        json.dump(user_list, fp, indent=2)
 
 
 # Return response from twitch api
@@ -214,6 +220,7 @@ async def looped_task():
                         await dump_json()
 
             # Loop through api response and set offline stream's 'sent' key value to false
+            # If stream is offline, set 'sent' key value to false, then save and reload the local JSON file
             for index in local['streams']:
 
                 print('\nSTREAM NAME: ' + index['login'])
@@ -221,8 +228,6 @@ async def looped_task():
 
                 found_match = 0
                 for api_index in api['data']:
-
-                    # If stream is offline, set 'sent' key value to false, then save and reload the local JSON file
                     if api_index['user_id'] == index['id']:
                         print('MATCHING ID FROM API: ' + api_index['user_id'])
                         found_match = 1
@@ -232,7 +237,11 @@ async def looped_task():
                 if found_match == 0:
                     print('MATCHING ID NOT FOUND')
                     index['sent'] = 'false'
+                    index['status'] = 'offline'
                     await dump_json()
+
+                else:
+                    index['status'] = 'live'
 
                 print('')
 
@@ -289,24 +298,91 @@ async def looped_task():
 
 @client.command()
 async def help(ctx):
+    u_id = ctx.message.author.id
+    v_list = user_list['verified_users']
+
     msg = 'This bot lets you know when your favorite streamers go live.\nHelpful, I know.\n\nCommands:\n\n' \
-          '!list\t\t\t\t\t\t\t\t\t\t      :\tList your channels\n' \
-          '!add <twitch channel>\t\t\t:\tAdd a twitch channel\n' \
-          '!remove <twitch channel>\t :\tRemove a twitch channel\n'
+          '!list: List your channels\n' \
+          '!checklive: Check which streams are currently live\n' \
+          '!add <twitch channel>: Add a twitch channel\n' \
+          '!remove <twitch channel>: Remove a twitch channel\n'
+
+    v_msg = '\n\nAs a verified user, you can verify or remove discord text channels for use with Twitch Notifications using ' \
+                    'these commands:\n\n' \
+                    '!addchannel: Add the text channel to the list of verified channels.\n' \
+                    '!removechannel: Remove the text channel from the list of verified channels\n\n' \
+
+    if u_id in v_list:
+        msg = msg + v_msg
+
     await ctx.send(msg)
 
 
 @client.command()
 async def list(ctx):
     channel_id = ctx.message.channel.id
+    channel_exists = 0
+    has_subscriptions = 0
+
     print('\n------\n\nTime: ' + str(datetime.now()))
-    print('List request from channel ' + str(channel_id) + '\n------\n')
+    print('List request from channel ' + str(channel_id))
 
     msg = 'You currently receive notifications for the following channels:\n'
     for channel in local['channels']:
+
+        # Check if channel has been added to local.json
         if channel['id'] == channel_id:
+            channel_exists = 1
             for stream in channel['subscribed']:
+                has_subscriptions = 1
                 msg = msg + '\n' + stream
+
+    # If channel does not exist, send message to ctx and return
+    if channel_exists == 0:
+        msg = 'This discord channel has not been verified yet.'
+        print('Could not remove stream, channel has not been added to bot.\n------\n')
+        await ctx.send(msg)
+        return
+
+    elif not has_subscriptions:
+        msg = 'You have not added any twitch channels.'
+        print('No subscriptions added.\n------\n')
+        await ctx.send(msg)
+        return
+
+    else:
+        print('\n------\n')
+        await ctx.send(msg)
+
+
+@client.command()
+async def checklive(ctx):
+    c_id = ctx.message.channel.id
+    streams_live = []
+
+    for channel in local['channels']:
+        if c_id == channel['id']:
+            if len(channel['subscribed']) == 0:
+                msg = 'You have not added any twitch channels.'
+                await ctx.send(msg)
+                return
+
+    for stream in local['streams']:
+        if stream['status'] == 'live':
+            streams_live.append(stream['login'])
+
+    if len(streams_live) == 1:
+        msg = 'From your notifications, there is currently 1 stream live:\n\n'
+        for login in streams_live:
+            msg = msg + '{}\n'.format(login)
+
+    elif len(streams_live) > 0:
+        msg = 'From your notifications, there are currently {} streams live:\n\n'.format(len(streams_live))
+        for login in streams_live:
+            msg = msg + '{}\n'.format(login)
+
+    else:
+        msg = 'There are no streams live.'
 
     await ctx.send(msg)
 
@@ -314,9 +390,23 @@ async def list(ctx):
 @client.command()
 async def remove(ctx, arg):
     channel_id = ctx.message.channel.id
+    channel_exists = 0
+    arg = str(arg.lower())
 
     print('\n------\n\nTime: ' + str(datetime.now()))
     print('Remove request from channel ' + str(channel_id) + ' for stream name ' + arg)
+
+    # Check if channel has been added to local.json
+    for channel in local['channels']:
+        if channel['id'] == channel_id:
+            channel_exists = 1
+
+    # If channel does not exist, send message to ctx and return
+    if channel_exists == 0:
+        msg = 'This discord channel has not been verified yet.'
+        print('Could not remove stream, channel has not been added to bot.')
+        await ctx.send(msg)
+        return
 
     if not re.match('^[a-zA-Z0-9_]+$', arg):
         msg = 'Name must not contain special characters.'
@@ -334,8 +424,9 @@ async def remove(ctx, arg):
                     subscription_exists = 1
 
             if subscription_exists:
-                subscriptions = local['channels'][i]['subscribed']
+                subscriptions = channel['subscribed']
                 subscriptions.remove(arg)
+                await dump_json()
 
                 print('\nREMOVED: \nSTREAM: ' + arg + '\nCHANNEL ID: ' + str(channel_id) + '\n------\n')
 
@@ -351,10 +442,19 @@ async def remove(ctx, arg):
 
 @client.command()
 async def add(ctx, arg):
+    """Add a twitch stream to channel notifications"""
     global unresolved_ids
     channel_id = ctx.message.channel.id
     stream_exists = 0
+    channel_exists = 0
     subscription_exists = 0
+    arg = str(arg.lower())
+    new_stream = {
+        "login": arg,
+        "sent": "false",
+        "id": "",
+        "status": ""
+    }
 
     print('\n------\n\nTime: ' + str(datetime.now()))
     print('Add request from channel ' + str(channel_id) + ' for stream name ' + arg)
@@ -372,18 +472,26 @@ async def add(ctx, arg):
 
     # Check channel list in local.json to avoid duplicates
     for channel in local['channels']:
+
+        # Check if channel has been added to local.json
         if channel['id'] == channel_id:
+            channel_exists = 1
+
             for stream in channel['subscribed']:
+
+                # Check if stream is already in channel's subscriptions
                 if stream == arg:
                     subscription_exists = 1
 
+    # If channel does not exist, send message to ctx and return
+    if channel_exists == 0:
+        msg = 'This discord channel has not been verified yet.'
+        print('Could not add stream, channel has not been added to bot.')
+        await ctx.send(msg)
+        return
+
     # Acts on the checks above
     if subscription_exists == 0 and stream_exists == 0:
-        new_stream = {
-            "login": arg,
-            "sent": "false",
-            "id": ""
-        }
         local.setdefault('streams', []).append(new_stream)
         unresolved_ids = 1
 
@@ -400,11 +508,6 @@ async def add(ctx, arg):
         await ctx.send(msg)
 
     elif subscription_exists == 1 and stream_exists == 0:
-        new_stream = {
-            "login": arg,
-            "sent": "false",
-            "id": ""
-        }
         local.setdefault('streams', []).append(new_stream)
         unresolved_ids = 1
 
@@ -433,6 +536,195 @@ async def add(ctx, arg):
         msg = arg + ' has already been added to your notifications!'
         await ctx.send(msg)
 
+
+@client.command()
+async def addchannel(ctx):
+    """Add channel to bot"""
+    s_name = ctx.message.guild.name
+    c_name = ctx.message.channel.name
+    c_id = ctx.message.channel.id
+    u_id = ctx.message.author.id
+    u_name = ctx.message.author.name
+
+    verified = 0
+    duplicate = 0
+    print('\n------\n\nTime: ' + str(datetime.now()))
+    print('Add Channel request from:\nSERVER: {}\nCHANNEL: {} with ID {}'
+          '\nUSER: {} with ID {}'.format(s_name, c_name, c_id, u_name, u_id))
+
+    # Check if user is allowed to add channels
+    for id in user_list['verified_users']:
+        if u_id == id:
+            verified = 1
+
+    # If user can be verified, check for duplicates then add the channel
+    if verified:
+
+        # Check for duplicate channel IDs
+        for channel in local['channels']:
+            if channel['id'] == c_id:
+                duplicate = 1
+
+        # Act on duplicate check
+        if not duplicate:
+            new_channel = {
+                "id": c_id,
+                "guild_name": s_name,
+                "channel_name": c_name,
+                "added_by_name": u_name,
+                "added_by_id": u_id,
+                "subscribed": []
+            }
+
+            local['channels'].append(new_channel)
+            await dump_json()
+
+            msg = 'Channel added!'
+            print(msg + '\n------\n')
+            await ctx.send(msg)
+
+        else:
+            msg = 'Channel has already been added!'
+            print(msg + '\n------\n')
+            await ctx.send(msg)
+
+    else:
+        print('User is not authorized to add channels.\n------\n')
+        msg = 'You are not authorized to add channels.'
+        await ctx.send(msg)
+
+
+@client.command()
+async def removechannel(ctx):
+    """Remove channel from bot"""
+    s_name = ctx.message.guild.name
+    c_name = ctx.message.channel.name
+    c_id = ctx.message.channel.id
+    u_id = ctx.message.author.id
+    u_name = ctx.message.author.name
+
+    verified = 0
+    channel_exists = 0
+
+    print('\n------\n\nTime: ' + str(datetime.now()))
+    print('Remove Channel request from:\nSERVER: {}\nCHANNEL: {} with ID {}'
+          '\nUSER: {} with ID {}'.format(s_name, c_name, c_id, u_name, u_id))
+
+    # Check if user is allowed to add channels
+    for id in user_list['verified_users']:
+        if u_id == id:
+            verified = 1
+
+    # If user can be verified, try remove channel with correct id
+    if verified:
+        channel_list = local['channels']
+        for channel in channel_list:
+            if channel['id'] == c_id:
+                channel_exists = 1
+                channel_list.remove(channel)
+                await dump_json()
+
+        if channel_exists:
+            msg = 'Channel removed!'
+            print(msg + '\n------\n')
+            await ctx.send(msg)
+
+        else:
+            msg = 'Channel has already been removed, or was never added in the first place.'
+            print(msg + '\n------\n')
+            await ctx.send(msg)
+
+    else:
+        print('User is not authorized to remove channels.\n------\n')
+        msg = 'You are not authorized to remove channels.'
+        await ctx.send(msg)
+
+
+@client.command()
+async def adduser(ctx, arg):
+    """Add a user to verified list. This can only be done by master users."""
+    s_name = ctx.message.guild.name
+    c_name = ctx.message.channel.name
+    c_id = ctx.message.channel.id
+    u_id = ctx.message.author.id
+    u_name = ctx.message.author.name
+
+    print('\n------\n\nTime: ' + str(datetime.now()))
+    print('Verify User request from:\nSERVER: {}\nCHANNEL: {} with ID {}'
+          '\nUSER: {} with ID {}\nFor user ID: {}'.format(s_name, c_name, c_id, u_name, u_id, arg))
+
+
+    # Check if user is master user
+    if u_id not in user_list['master_users']:
+        msg = 'You are not authorized to add users.'
+        print('User is not a master user.')
+        await ctx.send(msg)
+        return
+
+    # Make the argument into an int
+    try:
+        arg = int(arg)
+    except ValueError:
+        print('Request cancelled, invalid argument.\n------\n')
+        await ctx.send("That didn't work, please try again.")
+        return
+
+    # If user is not already verified, add it
+    if arg not in user_list['verified_users']:
+        user_list['verified_users'].append(arg)
+        await dump_json()
+
+        msg = 'User ID {} is now verified.'.format(str(arg))
+        print(msg + '\n------\n')
+        await ctx.send(msg)
+
+    else:
+        msg = 'User ID {} is already verified.'.format(str(arg))
+        print(msg + '\n------\n')
+        await ctx.send(msg)
+
+
+@client.command()
+async def removeuser(ctx, arg):
+    """Remove a user from verified list. This can only be done by master users."""
+    s_name = ctx.message.guild.name
+    c_name = ctx.message.channel.name
+    c_id = ctx.message.channel.id
+    u_id = ctx.message.author.id
+    u_name = ctx.message.author.name
+
+    print('\n------\n\nTime: ' + str(datetime.now()))
+    print('Remove Verified User request from:\nSERVER: {}\nCHANNEL: {} with ID {}'
+          '\nUSER: {} with ID {}\nFor user ID: {}'.format(s_name, c_name, c_id, u_name, u_id, arg))
+
+    # Check if user is master user
+    if u_id not in user_list['master_users']:
+        msg = 'You are not authorized to remove users.'
+        print('User is not a master user.')
+        await ctx.send(msg)
+        return
+
+    # Make the argument into an int
+    try:
+        arg = int(arg)
+    except ValueError:
+        print('Request cancelled, invalid argument.\n------\n')
+        await ctx.send("That didn't work, please try again.")
+        return
+
+    list = user_list['verified_users']
+    try:
+        list.remove(arg)
+        await dump_json()
+
+        msg = 'Removed user ID {} from verified users.'.format(str(arg))
+        print(msg + '\n------\n')
+        await ctx.send(msg)
+
+    except ValueError:
+        msg = 'User ID {} is not a verified user.'.format(str(arg))
+        print(msg + '\n------\n')
+        await ctx.send(msg)
 
 @client.event
 async def on_command_error(ctx, error):
