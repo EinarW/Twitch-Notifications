@@ -379,11 +379,24 @@ async def list(ctx):
 
 @client.command()
 async def checklive(ctx):
-    c_id = ctx.message.channel.id
+    channel_id = ctx.message.channel.id
+    channel_exists = 0
     streams_live = []
 
+    # Check if channel has been added to local.json
     for channel in local['channels']:
-        if c_id == channel['id']:
+        if channel['id'] == channel_id:
+            channel_exists = 1
+
+    # If channel does not exist, send message to ctx and return
+    if channel_exists == 0:
+        msg = 'This discord channel has not been verified yet.'
+        logger.info('Could not remove stream, channel has not been added to bot.')
+        await ctx.send(msg)
+        return
+
+    for channel in local['channels']:
+        if channel_id == channel['id']:
             if len(channel['subscribed']) == 0:
                 msg = 'You have not added any twitch channels.'
                 await ctx.send(msg)
