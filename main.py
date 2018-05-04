@@ -350,7 +350,7 @@ async def list(ctx):
 
     logger.info('List request from channel ' + str(channel_id))
 
-    msg = 'You currently receive notifications for the following channels:'
+    msg = 'You currently receive notifications for the following channels:\n'
     for channel in local['channels']:
 
         # Check if channel has been added to local.json
