@@ -38,12 +38,12 @@ client.remove_command('help')
 unresolved_ids = 0
 
 # Reset all sent key values to false
-with open('local.json', 'r') as fp:
-    reset_values = json.load(fp)
-for streams_index in reset_values['streams']:
-    streams_index['sent'] = 'false'
-with open('local.json', 'w') as fp:
-    json.dump(reset_values, fp, indent=2)
+# with open('local.json', 'r') as fp:
+#     reset_values = json.load(fp)
+# for streams_index in reset_values['streams']:
+#     streams_index['sent'] = 'false'
+# with open('local.json', 'w') as fp:
+#     json.dump(reset_values, fp, indent=2)
 
 
 with open('local.json', 'r') as fp:
