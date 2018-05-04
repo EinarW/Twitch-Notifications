@@ -394,12 +394,12 @@ async def checklive(ctx):
             streams_live.append(stream['login'])
 
     if len(streams_live) == 1:
-        msg = 'From your notifications, there is currently 1 stream live:\n\n'
+        msg = 'There is currently 1 stream live:\n\n'
         for login in streams_live:
             msg = msg + '{}\n'.format(login)
 
     elif len(streams_live) > 0:
-        msg = 'From your notifications, there are currently {} streams live:\n\n'.format(len(streams_live))
+        msg = 'There are currently {} streams live:\n\n'.format(len(streams_live))
         for login in streams_live:
             msg = msg + '{}\n'.format(login)
 
