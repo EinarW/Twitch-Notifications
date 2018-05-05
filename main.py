@@ -79,11 +79,14 @@ async def get_streams(c_id, session, url, response_type):
     }
 
     # Gets and returns response from twitch api, using header defined above.
-    async with session.get(url, headers=headers, timeout=10) as response:
-        if response_type == 'text':
-            return await response.text()
-        elif response_type == 'json':
-            return await response.json()
+    try:
+        async with session.get(url, headers=headers, timeout=10) as response:
+            if response_type == 'text':
+                return await response.text()
+            elif response_type == 'json':
+                return await response.json()
+    except TimeoutError:
+        logger.info('TimeOutError on get_streams()')
 
 
 # Return response from twitch api
@@ -95,11 +98,14 @@ async def get_users(token, session, url, response_type):
     }
 
     # Gets and returns response from twitch api, using header defined above.
-    async with session.get(url, headers=headers, timeout=10) as response:
-        if response_type == 'text':
-            return await response.text()
-        elif response_type == 'json':
-            return await response.json()
+    try:
+        async with session.get(url, headers=headers, timeout=10) as response:
+            if response_type == 'text':
+                return await response.text()
+            elif response_type == 'json':
+                return await response.json()
+    except TimeoutError:
+        logger.info('TimeOutError on get_users()')
 
 
 async def make_token(client_id, client_secret):
