@@ -72,7 +72,6 @@ async def dump_json():
 
 # Return response from twitch api
 async def get_streams(c_id, session, url, response_type):
-
     # Param contains Client ID
     headers = {
         'Client-ID': '{}'.format(c_id)
@@ -91,7 +90,6 @@ async def get_streams(c_id, session, url, response_type):
 
 # Return response from twitch api
 async def get_users(token, session, url, response_type):
-
     # Param contains Client ID
     headers = {
         'Authorization': 'Bearer {}'.format(token)
@@ -196,7 +194,11 @@ async def looped_task():
             token = await make_token(c_id, c_secret)  # Token to get twitch ID from all the added twitch usernames
             async with aiohttp.ClientSession() as session:
                 users_response = await get_users(token, session, users_url, 'json')
-            await fill_ids(users_response)
+
+            try:
+                await fill_ids(users_response)
+            except TypeError:
+                logger.info('TypeError')
 
             await asyncio.sleep(2)  # Wait enough for login to logger.info to console
             first_startup = 0
@@ -231,23 +233,31 @@ async def looped_task():
             for channel in local['channels']:
                 channel_id = channel['id']
                 for subscription in channel['subscribed']:
-                    exists = 0
-                    for user in users_response['data']:
-                        if subscription == user['login']:
-                            exists = 1
 
-                    if exists == 0:
-                        sub_list = channel['subscribed']
-                        sub_list.remove(subscription)
+                    try:
+                        exists = 0
 
-                        logger.info('Twitch stream does not exist: ')
-                        logger.info('REMOVED STREAM: ' + subscription + '\nCHANNEL ID: ' + str(channel_id))
-                        msg = subscription + ' does not exist, removing channel from notification list.'
+                        for user in users_response['data']:
+                            if subscription == user['login']:
+                                exists = 1
 
-                        channel_to_send = client.get_channel(channel_id)
-                        await channel_to_send.send(msg)
+                        if exists == 0:
+                            sub_list = channel['subscribed']
+                            sub_list.remove(subscription)
 
-                        await dump_json()
+                            logger.info('Twitch stream does not exist: ')
+                            logger.info('REMOVED STREAM: ' + subscription + '\nCHANNEL ID: ' + str(channel_id))
+                            msg = subscription + ' does not exist, removing channel from notification list.'
+
+                            channel_to_send = client.get_channel(channel_id)
+                            await channel_to_send.send(msg)
+
+                            await dump_json()
+
+                    except TypeError:
+                        logger.info('TypeError')
+
+
 
             # Loop through api response and set offline stream's 'sent' key value to false
             # If stream is offline, set 'sent' key value to false, then save and reload the local JSON file
@@ -256,24 +266,27 @@ async def looped_task():
                 logger.info('STREAM NAME: ' + index['login'])
                 logger.info('STREAM ID: ' + index['id'])
 
-                found_match = 0
-                for api_index in api['data']:
-                    if api_index['user_id'] == index['id']:
-                        logger.info('MATCHING ID FROM API: ' + api_index['user_id'])
-                        found_match = 1
-                        live_counter += 1
-                        live_streams.append(index['login'])
+                try:
+                    found_match = 0
+                    for api_index in api['data']:
+                        if api_index['user_id'] == index['id']:
+                            logger.info('MATCHING ID FROM API: ' + api_index['user_id'])
+                            found_match = 1
+                            live_counter += 1
+                            live_streams.append(index['login'])
 
-                if found_match == 0:
-                    logger.info('MATCHING ID NOT FOUND')
-                    index['sent'] = 'false'
-                    index['status'] = 'offline'
-                    await dump_json()
+                    if found_match == 0:
+                        logger.info('MATCHING ID NOT FOUND')
+                        index['sent'] = 'false'
+                        index['status'] = 'offline'
+                        await dump_json()
 
-                else:
-                    index['status'] = 'live'
+                    else:
+                        index['status'] = 'live'
 
-                logger.info('')
+                    logger.info('')
+                except TypeError:
+                    logger.info('TypeError')
 
             streams_sent = []
 
@@ -288,29 +301,32 @@ async def looped_task():
                         if stream_index['login'] == subscribed_stream:
                             local_id = stream_index['id']
 
-                        for api_index in api['data']:
-                            if api_index['user_id'] == local_id:
+                        try:
+                            for api_index in api['data']:
+                                if api_index['user_id'] == local_id:
 
-                                status = api_index['type']
+                                    status = api_index['type']
 
-                                # If live, checks whether stream is live or vodcast, sets msg accordingly
-                                # Sends message to channel, then saves sent status to json
-                                if status == 'live' and stream_index['sent'] == 'false':
-                                    msg = stream_index['login'] + ' is LIVE!\nhttps://www.twitch.tv/' + stream_index['login']
-                                    channel_to_send = client.get_channel(channel_id)
-                                    await channel_to_send.send(msg)
+                                    # If live, checks whether stream is live or vodcast, sets msg accordingly
+                                    # Sends message to channel, then saves sent status to json
+                                    if status == 'live' and stream_index['sent'] == 'false':
+                                        msg = stream_index['login'] + ' is LIVE!\nhttps://www.twitch.tv/' + stream_index['login']
+                                        channel_to_send = client.get_channel(channel_id)
+                                        await channel_to_send.send(msg)
 
-                                elif status == 'vodcast' and stream_index['sent'] == 'false':
-                                    msg = stream_index['login'] + ' VODCAST is LIVE!\nhttps://www.twitch.tv/' + stream_index['login']
-                                    await client.send_message(client.get_channel(channel_id), msg)
+                                    elif status == 'vodcast' and stream_index['sent'] == 'false':
+                                        msg = stream_index['login'] + ' VODCAST is LIVE!\nhttps://www.twitch.tv/' + stream_index['login']
+                                        await client.send_message(client.get_channel(channel_id), msg)
 
-                                # Loop through streams_sent[], if stream is not there, then add it
-                                add_sent = 1
-                                for stream in streams_sent:
-                                    if stream == stream_index['login']:
-                                        add_sent = 0
-                                if add_sent:
-                                    streams_sent.append(stream_index['login'])
+                                    # Loop through streams_sent[], if stream is not there, then add it
+                                    add_sent = 1
+                                    for stream in streams_sent:
+                                        if stream == stream_index['login']:
+                                            add_sent = 0
+                                    if add_sent:
+                                        streams_sent.append(stream_index['login'])
+                        except TypeError:
+                            logger.info('TypeError')
 
             for login in local['streams']:
                 for stream in streams_sent:
