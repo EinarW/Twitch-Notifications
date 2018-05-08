@@ -78,14 +78,11 @@ async def get_streams(c_id, session, url, response_type):
     }
 
     # Gets and returns response from twitch api, using header defined above.
-    try:
-        async with session.get(url, headers=headers, timeout=10) as response:
-            if response_type == 'text':
-                return await response.text()
-            elif response_type == 'json':
-                return await response.json()
-    except TimeoutError:
-        logger.info('TimeOutError on get_streams()')
+    async with session.get(url, headers=headers, timeout=10) as response:
+        if response_type == 'text':
+            return await response.text()
+        elif response_type == 'json':
+            return await response.json()
 
 
 # Return response from twitch api
@@ -96,14 +93,11 @@ async def get_users(token, session, url, response_type):
     }
 
     # Gets and returns response from twitch api, using header defined above.
-    try:
-        async with session.get(url, headers=headers, timeout=10) as response:
-            if response_type == 'text':
-                return await response.text()
-            elif response_type == 'json':
-                return await response.json()
-    except TimeoutError:
-        logger.info('TimeOutError on get_users()')
+    async with session.get(url, headers=headers, timeout=10) as response:
+        if response_type == 'text':
+            return await response.text()
+        elif response_type == 'json':
+            return await response.json()
 
 
 async def make_token(client_id, client_secret):
@@ -191,9 +185,16 @@ async def looped_task():
             await asyncio.sleep(2)
 
             # Fill in missing stream IDs from api to local JSON
-            token = await make_token(c_id, c_secret)  # Token to get twitch ID from all the added twitch usernames
+            try:
+                token = await make_token(c_id, c_secret)  # Token to get twitch ID from all the added twitch usernames
+            except TimeoutError:
+                logger.info('TimeoutError')
+
             async with aiohttp.ClientSession() as session:
-                users_response = await get_users(token, session, users_url, 'json')
+                try:
+                    users_response = await get_users(token, session, users_url, 'json')
+                except TimeoutError:
+                    logger.info('TimeoutError')
 
             try:
                 await fill_ids(users_response)
@@ -210,8 +211,12 @@ async def looped_task():
             logger.info('Check #' + str(counter))
 
             streams_url = await make_streams_url()
+
             async with aiohttp.ClientSession() as session:
-                api = await get_streams(c_id, session, streams_url, 'json')
+                try:
+                    api = await get_streams(c_id, session, streams_url, 'json')
+                except TimeoutError:
+                    logger.info('TimeourError')
 
             # Check for streams in local['streams'] that are not in any of the channels' subscriptions and remove those
             all_subscriptions = []
