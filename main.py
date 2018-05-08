@@ -197,8 +197,8 @@ async def looped_task():
 
             try:
                 await fill_ids(users_response)
-            except TypeError:
-                logger.info('TypeError')
+            except (TypeError, KeyError) as e:
+                logger.info('TypeError/KeyError')
 
             await asyncio.sleep(2)  # Wait enough for login to logger.info to console
             first_startup = 0
@@ -215,7 +215,7 @@ async def looped_task():
                 try:
                     api = await get_streams(c_id, session, streams_url, 'json')
                 except TimeoutError:
-                    logger.info('TimeourError')
+                    logger.info('TimeoutError')
 
             # Check for streams in local['streams'] that are not in any of the channels' subscriptions and remove those
             all_subscriptions = []
@@ -258,8 +258,8 @@ async def looped_task():
 
                             await dump_json()
 
-                    except TypeError:
-                        logger.info('TypeError')
+                    except (TypeError, KeyError) as e:
+                        logger.info('TypeError/KeyError')
 
             # Loop through api response and set offline stream's 'sent' key value to false
             # If stream is offline, set 'sent' key value to false, then save and reload the local JSON file
@@ -287,8 +287,8 @@ async def looped_task():
                         index['status'] = 'live'
 
                     logger.info('')
-                except TypeError:
-                    logger.info('TypeError')
+                except (TypeError, KeyError) as e:
+                    logger.info('TypeError/KeyError')
 
             streams_sent = []
 
@@ -329,8 +329,8 @@ async def looped_task():
                                             add_sent = 0
                                     if add_sent:
                                         streams_sent.append(stream_index['login'])
-                        except TypeError:
-                            logger.info('TypeError')
+                        except (TypeError, KeyError) as e:
+                            logger.info('TypeError/KeyError')
 
             for login in local['streams']:
                 for stream in streams_sent:

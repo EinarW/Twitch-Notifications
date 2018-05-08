@@ -4,7 +4,6 @@
     <list default="true" id="ff3e7854-8e4c-490b-a610-e5e1ddeb8fee" name="Default" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sample_userlist.json" beforeDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -19,7 +18,7 @@
         <entry file="file://$PROJECT_DIR$/local.json">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="595">
-              <caret line="35" column="1" selection-start-line="35" selection-start-column="1" selection-end-line="35" selection-end-column="1" />
+              <caret line="77" column="1" selection-start-line="77" selection-start-column="1" selection-end-line="77" selection-end-column="1" />
             </state>
           </provider>
         </entry>
@@ -27,8 +26,8 @@
       <file leaf-file-name="main.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/main.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="163">
-              <caret line="187" column="98" selection-start-line="187" selection-start-column="98" selection-end-line="187" selection-end-column="98" />
+            <state relative-caret-position="418">
+              <caret line="189" column="43" lean-forward="true" selection-start-line="189" selection-start-column="43" selection-end-line="189" selection-end-column="43" />
               <folding>
                 <element signature="e#0#14#0" expanded="true" />
               </folding>
@@ -66,7 +65,6 @@
   <component name="FindInProjectRecents">
     <findStrings>
       <find>fill_id</find>
-      <find>api</find>
       <find>str(</find>
       <find>\n C</find>
       <find>has alread</find>
@@ -90,6 +88,11 @@
       <find>get_streams</find>
       <find>get_users</find>
       <find>make_token</find>
+      <find>TypeError, Key</find>
+      <find>TypeError</find>
+      <find>api =</find>
+      <find>api</find>
+      <find>TypeError/</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -119,6 +122,7 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -130,7 +134,6 @@
           <select />
         </subPane>
       </pane>
-      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -206,18 +209,17 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="2576" height="1416" extended-state="6" />
-    <editor active="true" />
     <layout>
-      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.18676123" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.18676123" />
       <window_info anchor="bottom" id="TODO" order="6" weight="0.32900432" />
       <window_info anchor="bottom" id="Event Log" order="7" side_tool="true" />
-      <window_info anchor="bottom" id="Run" order="2" weight="0.26246107" />
       <window_info anchor="bottom" id="Version Control" order="7" />
       <window_info anchor="bottom" id="Python Console" order="7" />
+      <window_info anchor="bottom" id="Run" order="2" weight="0.26246107" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info anchor="bottom" id="Terminal" order="7" />
-      <window_info anchor="bottom" id="Debug" order="3" weight="0.3995327" />
       <window_info id="Favorites" order="2" side_tool="true" />
+      <window_info anchor="bottom" id="Debug" order="3" weight="0.3995327" />
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
@@ -236,6 +238,16 @@
     </breakpoint-manager>
   </component>
   <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/main.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="3077">
+          <caret line="190" selection-start-line="190" selection-end-line="190" />
+          <folding>
+            <element signature="e#0#14#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/secret.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="17">
@@ -506,7 +518,7 @@
     <entry file="file://$PROJECT_DIR$/local.json">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="595">
-          <caret line="35" column="1" selection-start-line="35" selection-start-column="1" selection-end-line="35" selection-end-column="1" />
+          <caret line="77" column="1" selection-start-line="77" selection-start-column="1" selection-end-line="77" selection-end-column="1" />
         </state>
       </provider>
     </entry>
@@ -524,9 +536,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/userlist">
-      <provider selected="true" editor-type-id="text-editor" />
-    </entry>
     <entry file="file://$PROJECT_DIR$/userlist.json">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="119">
@@ -536,8 +545,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/main.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="163">
-          <caret line="187" column="98" selection-start-line="187" selection-start-column="98" selection-end-line="187" selection-end-column="98" />
+        <state relative-caret-position="418">
+          <caret line="189" column="43" lean-forward="true" selection-start-line="189" selection-start-column="43" selection-end-line="189" selection-end-column="43" />
           <folding>
             <element signature="e#0#14#0" expanded="true" />
           </folding>
