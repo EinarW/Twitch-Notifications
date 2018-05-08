@@ -781,9 +781,59 @@ async def removeuser(ctx, arg):
         logger.info(msg)
         await ctx.send(msg)
 
-@client.event
-async def on_command_error(ctx, error):
-    await ctx.send("That didn't work, please try again.")
+
+@adduser.error
+async def adduser_error(ctx, error):
+    if isinstance(error, commands.Ba):
+        await ctx.send("That didn't work, please try again.")
+
+
+@removeuser.error
+async def removeuser_error(ctx, error):
+    if isinstance(error, commands.BadArgument):
+        await ctx.send("That didn't work, please try again.")
+
+
+@addchannel.error
+async def addchannel_error(ctx, error):
+    if isinstance(error, commands.BadArgument):
+        await ctx.send("That didn't work, please try again.")
+
+
+@removechannel.error
+async def removechannel_error(ctx, error):
+    if isinstance(error, commands.BadArgument):
+        await ctx.send("That didn't work, please try again.")
+
+
+@add.error
+async def add_error(ctx, error):
+    if isinstance(error, commands.BadArgument):
+        await ctx.send("That didn't work, please try again.")
+
+
+@remove.error
+async def remove_error(ctx, error):
+    if isinstance(error, commands.BadArgument):
+        await ctx.send("That didn't work, please try again.")
+
+
+@livecheck.error
+async def livecheck_error(ctx, error):
+    if isinstance(error, commands.BadArgument):
+        await ctx.send("That didn't work, please try again.")
+
+
+@list.error
+async def list_error(ctx, error):
+    if isinstance(error, commands.BadArgument):
+        await ctx.send("That didn't work, please try again.")
+
+
+@help.error
+async def help_error(ctx, error):
+    if isinstance(error, commands.BadArgument):
+        await ctx.send("That didn't work, please try again.")
 
 
 client.loop.create_task(looped_task())
