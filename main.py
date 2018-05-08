@@ -31,7 +31,6 @@ def setup_logging(default_path="config/logging.config",
 
 setup_logging()
 
-
 client = commands.Bot(command_prefix='!')
 client.remove_command('help')
 
