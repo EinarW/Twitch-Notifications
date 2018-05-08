@@ -354,14 +354,14 @@ async def help(ctx):
 
     msg = 'This bot lets you know when your favorite streamers go live.\nHelpful, I know.\n\nCommands:\n\n' \
           '!list: List your channels\n' \
-          '!checklive: Check which streams are currently live\n' \
+          '!livecheck: Check which streams are currently live\n' \
           '!add <twitch channel>: Add a twitch channel\n' \
           '!remove <twitch channel>: Remove a twitch channel\n'
 
     v_msg = '\n\nAs a verified user, you can verify or remove discord text channels for use with Twitch Notifications using ' \
-                    'these commands:\n\n' \
-                    '!addchannel: Add the text channel to the list of verified channels.\n' \
-                    '!removechannel: Remove the text channel from the list of verified channels'
+            'these commands:\n\n' \
+            '!addchannel: Add the text channel to the list of verified channels.\n' \
+            '!removechannel: Remove the text channel from the list of verified channels'
 
     if u_id in v_list:
         msg = msg + v_msg
@@ -405,7 +405,7 @@ async def list(ctx):
 
 
 @client.command()
-async def checklive(ctx):
+async def livecheck(ctx):
     channel_id = ctx.message.channel.id
     channel_exists = 0
     streams_live = []
