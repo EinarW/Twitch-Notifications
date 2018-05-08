@@ -62,10 +62,10 @@ async def on_ready():
 
 
 async def dump_json():
-    with open('local.json' , 'w') as fp:
+    with open('local.json', 'w') as fp:
         json.dump(local, fp, indent=2)
 
-    with open('userlist.json' , 'w') as fp:
+    with open('userlist.json', 'w') as fp:
         json.dump(user_list, fp, indent=2)
 
 
@@ -227,7 +227,7 @@ async def looped_task():
             for i, stream in enumerate(local['streams']):
                 if stream['login'] not in all_subscriptions:
                     logger.info('No channels subscribed to stream:\nREMOVED: ' +
-                          stream['login'] + ' from local["streams"]')
+                                stream['login'] + ' from local["streams"]')
                     stream_list = local['streams']
                     stream_list.pop(i)
 
@@ -260,8 +260,6 @@ async def looped_task():
 
                     except TypeError:
                         logger.info('TypeError')
-
-
 
             # Loop through api response and set offline stream's 'sent' key value to false
             # If stream is offline, set 'sent' key value to false, then save and reload the local JSON file
@@ -314,12 +312,14 @@ async def looped_task():
                                     # If live, checks whether stream is live or vodcast, sets msg accordingly
                                     # Sends message to channel, then saves sent status to json
                                     if status == 'live' and stream_index['sent'] == 'false':
-                                        msg = stream_index['login'] + ' is LIVE!\nhttps://www.twitch.tv/' + stream_index['login']
+                                        msg = stream_index['login'] + ' is LIVE!\nhttps://www.twitch.tv/' + stream_index[
+                                            'login']
                                         channel_to_send = client.get_channel(channel_id)
                                         await channel_to_send.send(msg)
 
                                     elif status == 'vodcast' and stream_index['sent'] == 'false':
-                                        msg = stream_index['login'] + ' VODCAST is LIVE!\nhttps://www.twitch.tv/' + stream_index['login']
+                                        msg = stream_index['login'] + ' VODCAST is LIVE!\nhttps://www.twitch.tv/' + \
+                                              stream_index['login']
                                         await client.send_message(client.get_channel(channel_id), msg)
 
                                     # Loop through streams_sent[], if stream is not there, then add it
@@ -389,7 +389,7 @@ async def list(ctx):
     # If channel does not exist, send message to ctx and return
     if channel_exists == 0:
         msg = 'This discord channel has not been verified yet.'
-        logger.info('Could not remove stream, channel has not been added to bot.')
+        logger.info('Could not list streams, channel has not been added to bot.')
         await ctx.send(msg)
         return
 
@@ -417,7 +417,7 @@ async def livecheck(ctx):
     # If channel does not exist, send message to ctx and return
     if channel_exists == 0:
         msg = 'This discord channel has not been verified yet.'
-        logger.info('Could not remove stream, channel has not been added to bot.')
+        logger.info('Could check streams, channel has not been added to bot.')
         await ctx.send(msg)
         return
 
@@ -608,7 +608,7 @@ async def addchannel(ctx):
     verified = 0
     duplicate = 0
     logger.info('Add Channel request from:\nSERVER: {}\nCHANNEL: {} with ID {}'
-          '\nUSER: {} with ID {}'.format(s_name, c_name, c_id, u_name, u_id))
+                '\nUSER: {} with ID {}'.format(s_name, c_name, c_id, u_name, u_id))
 
     # Check if user is allowed to add channels
     for id in user_list['verified_users']:
@@ -638,7 +638,7 @@ async def addchannel(ctx):
             await dump_json()
 
             msg = 'Channel added!'
-            logger.info(msg )
+            logger.info(msg)
             await ctx.send(msg)
 
         else:
@@ -665,7 +665,7 @@ async def removechannel(ctx):
     channel_exists = 0
 
     logger.info('Remove Channel request from:\nSERVER: {}\nCHANNEL: {} with ID {}'
-          '\nUSER: {} with ID {}'.format(s_name, c_name, c_id, u_name, u_id))
+                '\nUSER: {} with ID {}'.format(s_name, c_name, c_id, u_name, u_id))
 
     # Check if user is allowed to add channels
     for id in user_list['verified_users']:
@@ -707,7 +707,7 @@ async def adduser(ctx, arg):
     u_name = ctx.message.author.name
 
     logger.info('Verify User request from:\nSERVER: {}\nCHANNEL: {} with ID {}'
-          '\nUSER: {} with ID {}\nFor user ID: {}'.format(s_name, c_name, c_id, u_name, u_id, arg))
+                '\nUSER: {} with ID {}\nFor user ID: {}'.format(s_name, c_name, c_id, u_name, u_id, arg))
 
     # Check if user is master user
     if u_id not in user_list['master_users']:
@@ -749,7 +749,7 @@ async def removeuser(ctx, arg):
     u_name = ctx.message.author.name
 
     logger.info('Remove Verified User request from:\nSERVER: {}\nCHANNEL: {} with ID {}'
-          '\nUSER: {} with ID {}\nFor user ID: {}'.format(s_name, c_name, c_id, u_name, u_id, arg))
+                '\nUSER: {} with ID {}\nFor user ID: {}'.format(s_name, c_name, c_id, u_name, u_id, arg))
 
     # Check if user is master user
     if u_id not in user_list['master_users']:
